@@ -10,13 +10,16 @@
 using namespace std;
 
 const int POPULATION_SIZE = 160;
-const int INITIAL_SOLUTIONS_AMOUNT = 100;
+const int INITIAL_SOLUTIONS_AMOUNT = 160;
+
 const int TUPLES_AMOUNT = 50;
-const int PERIODS_AMOUNT = 50;
-const int LECTURERS_AMOUNT = 50;
-const int ROOMS_AMOUNT = 3;
-const int GROUPS_AMOUNT = 50;
-const int NEW_SOLUTIONS_NUM = 20;
+const int PERIODS_AMOUNT = 30;
+
+const int LECTURERS_AMOUNT = 15;
+const int ROOMS_AMOUNT = 15;
+const int GROUPS_AMOUNT = 15;
+
+const int NEW_SOLUTIONS_NUM = 10;
 float POPULATION_INCREASE_FAKTOR = 1;
 
 struct Tuple
@@ -38,6 +41,7 @@ struct Solution
     Solution(vector<Period *> periods) : periods(periods) {}
     Solution() {}
 };
+vector<Solution *> population;
 
 /*UTILS*/
 int getRandRangeInt(int beg, int end)
@@ -162,6 +166,60 @@ vector<Tuple *> createSolutionTuples()
         Tuple *tuple = new Tuple(id++, lecturerId, groupId, roomId);
         tuples.push_back(tuple);
     }
+    return tuples;
+}
+
+vector<Tuple *> createSolutionTuplesFile()
+{
+    ofstream myfile;
+    myfile.open("tuples.csv");
+    int id = 0;
+    for (int id = 0; id < TUPLES_AMOUNT; id++)
+    {
+        int lecturerId = getRandRangeInt(0, LECTURERS_AMOUNT);
+        int groupId = getRandRangeInt(0, GROUPS_AMOUNT);
+        int roomId = getRandRangeInt(0, ROOMS_AMOUNT);
+
+        myfile << id << ";" << lecturerId << ";" << groupId << ";" << roomId << endl;
+    }
+    myfile.close();
+}
+
+vector<Tuple *> readSolutionTuplesFile()
+{
+    std::vector<Tuple *> tuples;
+
+    string line;
+    ifstream myfile("tuples.csv");
+    if (myfile.is_open())
+    {
+        int readTuples = 0;
+        while (getline(myfile, line) && (readTuples < TUPLES_AMOUNT))
+        {
+            std::vector<int> indexes;
+            for (int i = 0; i < line.length(); i++)
+            {
+                if (line[i] == ';')
+                {
+                    indexes.push_back(i);
+                }
+            }
+
+            int id = atoi(line.substr(0, indexes[0]).c_str());
+            int lecturerId = atoi(line.substr(indexes[0] + 1, indexes[1]).c_str());
+            int groupId = atoi(line.substr(indexes[1] + 1, indexes[2]).c_str());
+            int roomId = atoi(line.substr(indexes[2] + 1, line.length()).c_str());
+
+         cout << "Tuple read: " << id << " " << lecturerId << " " << groupId << " " << roomId << endl;
+
+            Tuple *tuple = new Tuple(id, lecturerId, groupId, roomId);
+            tuples.push_back(tuple);
+            readTuples++;
+            // cout << line << '\n';
+        }
+        myfile.close();
+    }
+
     return tuples;
 }
 

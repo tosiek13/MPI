@@ -14,7 +14,7 @@ SerializedPopulation serilize(vector<Solution *> population)
     SerializedPopulation result;
     for (int j = 0; j < population.size(); j++)
     {
-        for (int i = 0; i < PERIODS_AMOUNT; i++)
+        for (int i = 0; i < population[j]->periods.size(); i++)
         {
             result.tuplesNumInPeriods.push_back(population[j]->periods[i]->tuples.size());
             for (int k = 0; k < population[j]->periods[i]->tuples.size(); k++)
@@ -85,6 +85,7 @@ void broadcastPopulation(SerializedPopulation sp)
     MPI_Comm_size(MPI_COMM_WORLD, &exeCoreAmount);
     for (int i = 1; i < exeCoreAmount; i++)
     {
+        // std::cout<<"Message to rank: " <<i <<std::endl;
         sendSerializedPopulation(sp, i);
     }
 }
