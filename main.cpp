@@ -33,24 +33,22 @@ int main(int argc, char **argv)
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    // if (rank == 0)
+    if (rank == 0){
+        // createSolutionTuplesFile();
+    }
     if (true)
     {
-        // createSolutionTuplesFile();
         // tuples_org = createSolutionTuples();
         tuples_org = readSolutionTuplesFile();
-        // cout << "READ done" << endl;
         population = createPopulation(INITIAL_SOLUTIONS_AMOUNT);
-        // cout << "population created done" << endl;
     }
-    // cout << "main execution" << endl;
     srand(time(NULL) + rank);
 
     while (true)
     {
         if (rank == 0)
         {
-            // cout << "rank 0 serizlize" << endl;
+            cout << "Population send size:" << population.size() << endl;
             SerializedPopulation sp = serilize(population);
             int sum_of_elems = 0;
             // cout << "rank 0 broadcast" << endl;
@@ -84,6 +82,7 @@ int main(int argc, char **argv)
                 population.insert(population.end(), pop.begin(), pop.end());
             }
             // cout << "rank: " << rank << " natural selection" << endl;
+            // cout << "Population before natural selection size:" << population.size() << endl;
             population = naturalSelection(population);
             // cout << "rank: " << rank << " natural selection end with amount: " << population.size() << endl;
             cout << endl
@@ -91,6 +90,7 @@ int main(int argc, char **argv)
 
             for (int j = 0; j < population.size(); j++)
             {
+                // cout << "CHECK: " << j << endl;
                 if (countSolutionCost(population[j]) == 0)
                 {
                     printCSVSolution(population[j]);

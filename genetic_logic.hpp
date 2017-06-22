@@ -4,23 +4,23 @@
 #include <set>
 #include <algorithm>
 #include <functional>
+#include <climits>
 #include <stdlib.h>
 #include <mpi.h>
 
 using namespace std;
 
 const int POPULATION_SIZE = 160;
-const int INITIAL_SOLUTIONS_AMOUNT = 160;
-
+const int INITIAL_SOLUTIONS_AMOUNT = 100;
 const int TUPLES_AMOUNT = 50;
-const int PERIODS_AMOUNT = 30;
-
-const int LECTURERS_AMOUNT = 15;
-const int ROOMS_AMOUNT = 15;
-const int GROUPS_AMOUNT = 15;
-
-const int NEW_SOLUTIONS_NUM = 10;
+const int PERIODS_AMOUNT = 50;
+const int LECTURERS_AMOUNT = 50;
+const int ROOMS_AMOUNT = 3;
+const int GROUPS_AMOUNT = 50;
+const int NEW_SOLUTIONS_NUM = 20;
 float POPULATION_INCREASE_FAKTOR = 1;
+const int MUTATION_PROPABILITY = 0.3;
+const float SURVIVAL_RATE = 0.8;
 
 struct Tuple
 {
@@ -41,6 +41,7 @@ struct Solution
     Solution(vector<Period *> periods) : periods(periods) {}
     Solution() {}
 };
+
 vector<Solution *> population;
 
 /*UTILS*/
@@ -71,29 +72,36 @@ int countSolutionCost(Solution *s)
     int cost = 0;
     for (int i = 0; i < s->periods.size(); i++)
     {
+        // cout << "Period: " << i << std::endl;
         Period *period = s->periods[i];
         set<int> usedRoomIds;
         set<int> usedLecturersIds;
         set<int> usedGroupIds;
         for (int j = 0; j < period->tuples.size(); j++)
         {
+            // cout<<"get tuple: " << j << std::endl;
             Tuple *tuple = period->tuples[j];
+            // cout<<"got it"<<std::endl;
             if (usedRoomIds.find(tuple->roomId) != usedRoomIds.end())
             {
                 cost++;
             }
-            if (usedLecturersIds.find(tuple->roomId) != usedLecturersIds.end())
+            if (usedLecturersIds.find(tuple->lecturerId) != usedLecturersIds.end())
             {
                 cost++;
             }
-            if (usedGroupIds.find(tuple->roomId) != usedGroupIds.end())
+            if (usedGroupIds.find(tuple->groupId) != usedGroupIds.end())
             {
                 cost++;
             }
+            // usedRoomIds.insert(tuple->roomId);
+            // usedLecturersIds.insert(tuple->lecturerId);
+            // usedGroupIds.insert(tuple->groupId);
             usedRoomIds.insert(tuple->roomId);
             usedLecturersIds.insert(tuple->lecturerId);
             usedGroupIds.insert(tuple->groupId);
         }
+        // cout << "Period END: " << i << std::endl;
     }
     return cost;
 }
@@ -148,7 +156,25 @@ void recombineSolution(Solution *s)
 
 void mutateSolution(Solution *s)
 {
-    // cout<<"Mutation not implements yet"<<endl;
+    // CHECK WHETHER MUTATION SHOULD HAPPEND
+    int randValue = getRandRangeInt(0, INT_MAX);
+    if (randValue < MUTATION_PROPABILITY * INT_MAX)
+    {
+        //PERFORM MUTATION
+        int periodFrom = getRandRangeInt(0, s->periods.size());
+        int periodTo = getRandRangeInt(0, s->periods.size());
+
+        if (periodFrom == periodTo)
+        {
+            return;
+        }
+
+        int tupleFrom = getRandRangeInt(0, s->periods[periodFrom]->tuples.size());
+        int toTuple = getRandRangeInt(0, s->periods[periodTo]->tuples.size());
+
+        s->periods[periodTo]->tuples.push_back(s->periods[periodFrom]->tuples[tupleFrom]);
+        s->periods[periodFrom]->tuples.erase(s->periods[periodFrom]->tuples.begin() + tupleFrom);
+    }
 }
 
 /*Solution genetic processing functions*/ //END
@@ -174,7 +200,7 @@ vector<Tuple *> createSolutionTuplesFile()
     ofstream myfile;
     myfile.open("tuples.csv");
     int id = 0;
-    for (int id = 0; id < TUPLES_AMOUNT; id++)
+    for (int id = 0; id < 10000; id++)
     {
         int lecturerId = getRandRangeInt(0, LECTURERS_AMOUNT);
         int groupId = getRandRangeInt(0, GROUPS_AMOUNT);
@@ -210,7 +236,7 @@ vector<Tuple *> readSolutionTuplesFile()
             int groupId = atoi(line.substr(indexes[1] + 1, indexes[2]).c_str());
             int roomId = atoi(line.substr(indexes[2] + 1, line.length()).c_str());
 
-         cout << "Tuple read: " << id << " " << lecturerId << " " << groupId << " " << roomId << endl;
+            // cout << "Tuple read: " << id << " " << lecturerId << " " << groupId << " " << roomId << endl;
 
             Tuple *tuple = new Tuple(id, lecturerId, groupId, roomId);
             tuples.push_back(tuple);
@@ -331,7 +357,9 @@ vector<Solution *> naturalSelection(vector<Solution *> population)
         selectionMode = 1;
     }
 
-    int survialsAmount = population.size() >= 10 ? ceil(population.size() * 0.5) : population.size() - 1;
+    std::cout << "POP SIZE: " << population.size() << std::endl;
+    int survialsAmount = population.size() >= 10 ? ceil(population.size() * SURVIVAL_RATE) : population.size() - 1;
+    std::cout << "Survivals amount: " << survialsAmount << std::endl;
     int threshold = costs.at(population.size() - survialsAmount - 1);
 
     vector<Solution *> populationSelected;
