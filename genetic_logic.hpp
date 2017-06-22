@@ -7,9 +7,9 @@
 #include <stdlib.h>
 #include <mpi.h>
 
-
 using namespace std;
 
+const int POPULATION_SIZE = 160;
 const int INITIAL_SOLUTIONS_AMOUNT = 100;
 const int TUPLES_AMOUNT = 50;
 const int PERIODS_AMOUNT = 50;
@@ -18,10 +18,6 @@ const int ROOMS_AMOUNT = 3;
 const int GROUPS_AMOUNT = 50;
 const int NEW_SOLUTIONS_NUM = 20;
 float POPULATION_INCREASE_FAKTOR = 1;
-
-
-
-
 
 struct Tuple
 {
@@ -420,19 +416,23 @@ void printCSVSolution(Solution *solution)
     myfile.close();
 }
 
+vector<Solution *> createNewSolutions(vector<Solution *> population)
+{
+    int coresAmount;
+    MPI_Comm_size(MPI_COMM_WORLD, &coresAmount);
+    int newSolutionToCreate = POPULATION_SIZE / coresAmount;
 
-vector<Solution *> createNewSolutions(vector<Solution *> population){
+    vector<Solution *> new_population;
+    for (int i = 0; i < newSolutionToCreate; i++)
+    {
 
-        vector<Solution *> new_population;
-        for (int i = 0; i < NEW_SOLUTIONS_NUM; i++){
-            int index1 = getRandRangeInt(0, population.size());
-            int index2 = getRandRangeInt(0, population.size());
-            Solution *new_solution = crossSolutions(population[index1], population[index2]);
-            recombineSolution(new_solution);
-            mutateSolution(new_solution);
-            new_population.push_back(new_solution);
-        }
+        int index1 = getRandRangeInt(0, population.size());
+        int index2 = getRandRangeInt(0, population.size());
+        Solution *new_solution = crossSolutions(population[index1], population[index2]);
+        recombineSolution(new_solution);
+        mutateSolution(new_solution);
+        new_population.push_back(new_solution);
+    }
 
-        return new_population;
-
+    return new_population;
 }

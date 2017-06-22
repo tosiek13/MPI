@@ -16,74 +16,69 @@
 #include <boost/iostreams/device/back_inserter.hpp>
 #include "./genetic_logic.hpp"
 #include "./parallel_logic.hpp"
-#include <time.h>       /* time */
-
+#include <time.h> /* time */
 
 using namespace std;
 
-
-
-
-
-int main(int argc,char** argv)
+int main(int argc, char **argv)
 {
     //test
-
 
     int rank, size, i;
     int buffer[10];
     MPI_Status status;
     int counter;
 
-
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-
-
-   
     tuples_org = createSolutionTuples();
     vector<Solution *> population = createPopulation(INITIAL_SOLUTIONS_AMOUNT);
 
     srand(time(NULL) + rank);
 
-    while(true){
-        if (rank == 0){
+    while (true)
+    {
+        if (rank == 0)
+        {
             SerializedPopulation sp = serilize(population);
             int sum_of_elems = 0;
 
             broadcastPopulation(sp);
             //printPopulation(population);
-                    counter++;
-
+            counter++;
         }
 
-    
-        if (rank  != 0){
-            SerializedPopulation sp = recivePopulation( 0, &status);
+        if (rank != 0)
+        {
+            SerializedPopulation sp = recivePopulation(0, &status);
             vector<Solution *> pop = deserialize(sp);
-            vector<Solution *> newSolutions = createNewSolutions( pop);
+            vector<Solution *> newSolutions = createNewSolutions(pop);
             SerializedPopulation newSolSerialized = serilize(newSolutions);
             //printPopulation(newSolutions);
             sendNewSolutionsToMaster(newSolSerialized);
-
         }
-        if (rank == 0){
+        if (rank == 0)
+        {
             population.clear();
-            for (int i = 1; i < 8; i++){
-                SerializedPopulation sp = recivePopulation( i, &status);
+            for (int i = 1; i < size; i++)
+            {
+                SerializedPopulation sp = recivePopulation(i, &status);
                 vector<Solution *> pop = deserialize(sp);
                 //printPopulation(pop);
-                population.insert( population.end(), pop.begin(), pop.end() );
+                population.insert(population.end(), pop.begin(), pop.end());
             }
             population = naturalSelection(population);
-            cout << endl<<countSolutionCost(population[0]) << endl;
+            cout << endl
+                 << countSolutionCost(population[0]) << endl;
 
-            for (int j = 0; j < population.size() ; j++){
-                if(countSolutionCost(population[j]) == 0){
+            for (int j = 0; j < population.size(); j++)
+            {
+                if (countSolutionCost(population[j]) == 0)
+                {
                     printCSVSolution(population[j]);
-                    MPI_Abort(MPI_COMM_WORLD,0);
+                    MPI_Abort(MPI_COMM_WORLD, 0);
                 }
             }
         }
@@ -91,7 +86,4 @@ int main(int argc,char** argv)
 
     MPI_Finalize();
     return 0;
-
-
-
 }
