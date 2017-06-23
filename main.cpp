@@ -34,11 +34,11 @@ int main(int argc, char **argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     if (rank == 0){
-        
         // createSolutionTuplesFile();
     }
     if (true)
     {
+        
         // tuples_org = createSolutionTuples();
         tuples_org = readSolutionTuplesFile();
         population = createPopulation(INITIAL_SOLUTIONS_AMOUNT);
