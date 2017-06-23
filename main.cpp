@@ -33,12 +33,15 @@ int main(int argc, char **argv)
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    if (rank == 0){
+    if (rank == 0)
+    {
+        // cout << "Creating data" << endl;
         // createSolutionTuplesFile();
+        // cout << "Data created" << endl;
     }
     if (true)
     {
-        
+
         // tuples_org = createSolutionTuples();
         tuples_org = readSolutionTuplesFile();
         population = createPopulation(INITIAL_SOLUTIONS_AMOUNT);
