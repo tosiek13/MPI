@@ -11,6 +11,7 @@ struct SerializedPopulation
 
 struct PopulationBuffer
 {
+    int pop_size;
     int *tuplesNumInPeriods;
     int *tuplesIds;
     int *groupIds;
@@ -18,8 +19,50 @@ struct PopulationBuffer
     int *roomIds;
 };
 
-void serilize(vector<Solution *> population, PopulationBuffer popBuffer)
+void serilize(vector<Solution *> population, PopulationBuffer *popBuffer)
 {
+    int index_1 = 0;
+    int index_2 = 0;
+    popBuffer->pop_size = population.size();
+    for (int j = 0; j < population.size(); j++)
+    {
+        for (int i = 0; i < population[j]->periods.size(); i++)
+        {
+            popBuffer->tuplesNumInPeriods[index_1++] = population[j]->periods[i]->tuples.size();
+            for (int k = 0; k < population[j]->periods[i]->tuples.size(); k++)
+            {
+                popBuffer->tuplesIds[index_2] = population[j]->periods[i]->tuples[k]->id;
+                popBuffer->groupIds[index_2] = population[j]->periods[i]->tuples[k]->groupId;
+                popBuffer->lecturerIds[index_2] = population[j]->periods[i]->tuples[k]->lecturerId;
+                popBuffer->roomIds[index_2] = population[j]->periods[i]->tuples[k]->roomId;
+                index_2++;
+            }
+        }
+    }
+}
+
+PopulationBuffer serilize(vector<Solution *> population)
+{
+    int pop_size = population.size();
+    int pop_periods_amount = pop_size * PERIODS_AMOUNT;
+    int pop_tuples_size = pop_size * TUPLES_AMOUNT;
+
+    // allocate memory
+    // cout << "Allocation" << endl;
+    int *periodTuplesAmounts = new int[pop_periods_amount];
+    int *tuplesIDBuffer = new int[pop_tuples_size];
+    int *tuplesGroupBuffer = new int[pop_tuples_size];
+    int *tuplesLecturerBuffer = new int[pop_tuples_size];
+    int *tuplesRoomBuffer = new int[pop_tuples_size];
+
+    PopulationBuffer popBuffer = {pop_size,
+                                  periodTuplesAmounts,
+                                  tuplesIDBuffer,
+                                  tuplesGroupBuffer,
+                                  tuplesLecturerBuffer,
+                                  tuplesRoomBuffer};
+    // reasign data
+    // cout << "Reasignments" << endl;
     int index_1 = 0;
     int index_2 = 0;
     for (int j = 0; j < population.size(); j++)
@@ -37,27 +80,26 @@ void serilize(vector<Solution *> population, PopulationBuffer popBuffer)
             }
         }
     }
+    return popBuffer;
 }
 
-vector<Solution *> deserialize(SerializedPopulation sp)
+vector<Solution *> deserialize(PopulationBuffer popBuffer)
 {
     vector<Solution *> result;
-    int populationSize = sp.tuplesNumInPeriods.size() / PERIODS_AMOUNT;
     int tupleCounter = 0;
-
-    for (int i = 0; i < populationSize; i++)
+    for (int i = 0; i < popBuffer.pop_size; i++)
     {
         Solution *newSol = new Solution[1];
         for (int j = 0; j < PERIODS_AMOUNT; j++)
         {
             Period *newPeriod = new Period[1];
-            int tuplesNum = sp.tuplesNumInPeriods[i * PERIODS_AMOUNT + j];
+            int tuplesNum = popBuffer.tuplesNumInPeriods[i * PERIODS_AMOUNT + j];
             for (int k = 0; k < tuplesNum; k++)
             {
-                int tupleId = sp.tuplesIds[tupleCounter];
-                int groupId = sp.groupIds[tupleCounter];
-                int lecturerId = sp.lecturerIds[tupleCounter];
-                int roomId = sp.roomIds[tupleCounter];
+                int tupleId = popBuffer.tuplesIds[tupleCounter];
+                int groupId = popBuffer.groupIds[tupleCounter];
+                int lecturerId = popBuffer.lecturerIds[tupleCounter];
+                int roomId = popBuffer.roomIds[tupleCounter];
 
                 Tuple *newTuple = new Tuple(tupleId, lecturerId, groupId, roomId);
                 newPeriod->tuples.push_back(newTuple);

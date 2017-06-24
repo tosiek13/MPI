@@ -12,6 +12,7 @@
 using namespace std;
 
 const int POPULATION_SIZE = 160;
+
 const int INITIAL_SOLUTIONS_AMOUNT = 100;
 const int TUPLES_AMOUNT = 50;
 const int PERIODS_AMOUNT = 50;
@@ -27,8 +28,6 @@ struct Tuple
     int id, groupId, lecturerId, roomId;
     Tuple(int id, int lecturerId, int groupId, int roomId) : id(id), lecturerId(lecturerId), groupId(groupId), roomId(roomId) {}
 };
-
-vector<Tuple *> tuples_org;
 
 struct Period
 {
@@ -64,6 +63,11 @@ Tuple *getTupleById(Solution *s, int id)
             }
         }
     }
+}
+
+Tuple *copyTuple(Tuple *tuple)
+{
+    return new Tuple(tuple->id, tuple->groupId, tuple->lecturerId, tuple->roomId);
 }
 
 /*Solution genetic processing functions*/
@@ -106,7 +110,7 @@ int countSolutionCost(Solution *s)
     return cost;
 }
 
-void recombineSolution(Solution *s)
+void recombineSolution(Solution *s, Solution *s_org)
 {
     //prepare
     vector<int> duplicatedIds;
@@ -128,9 +132,20 @@ void recombineSolution(Solution *s)
             }
         }
     }
-    for (int i = 0; i < tuples_org.size(); i++)
+    //get original tuples
+    vector<Tuple *> org_sol_tuples;
+    for (int i = 0; i < s_org->periods.size(); i++)
     {
-        int tupleId = tuples_org[i]->id;
+        Period *period = s_org->periods[i];
+        for (int j = 0; j < period->tuples.size(); j++)
+        {
+            org_sol_tuples.push_back(period->tuples[j]);
+        }
+    }
+
+    for (int i = 0; i < org_sol_tuples.size(); i++)
+    {
+        int tupleId = org_sol_tuples[i]->id;
         if (ids.find(tupleId) == ids.end())
         {
             missingIds.push_back(tupleId);
@@ -141,9 +156,8 @@ void recombineSolution(Solution *s)
     {
         int duplicatedTupleId = duplicatedIds[i];
         Tuple *dup_Tuple = getTupleById(s, duplicatedTupleId);
-        // cout << "tuple by id end" << endl;
-        Tuple *orginalTuple = tuples_org[missingIds[0]];
-        // cout << "orginal tuple id end" << endl;
+        Tuple *orginalTuple = getTupleById(s_org, missingIds[0]);
+
         missingIds.erase(missingIds.begin());
 
         //reasign values
@@ -287,7 +301,7 @@ Solution *generateRandomSolution(vector<Tuple *> tuples, int periodsAmount)
     return new Solution(periods);
 }
 
-vector<Solution *> createPopulation(int solutionsAmount)
+vector<Solution *> createPopulation(vector<Tuple *> tuples_org, int solutionsAmount)
 {
     vector<Solution *> solutions;
     for (int i = 0; i < solutionsAmount; i++)
@@ -309,12 +323,14 @@ Period *periodsCrossover(Period *p1, Period *p2)
     //reasign not changed values
     for (int i = 0; i < amountOfNotChangingTuples; i++)
     {
-        p_result->tuples.push_back(p1->tuples[i]);
+        Tuple *newTuple = copyTuple(p1->tuples[i]);
+        p_result->tuples.push_back(newTuple);
     }
     // assign new tuples
     for (int i = amountOfNotChangingTuples; i < p2->tuples.size(); i++)
     {
-        p_result->tuples.push_back(p2->tuples[i]);
+        Tuple *newTuple = copyTuple(p2->tuples[i]);
+        p_result->tuples.push_back(newTuple);
     }
     return p_result;
 }
@@ -514,14 +530,29 @@ vector<Solution *> createNewSolutions(vector<Solution *> population)
     vector<Solution *> new_population;
     for (int i = 0; i < newSolutionToCreate; i++)
     {
-
         int index1 = getRandRangeInt(0, population.size());
         int index2 = getRandRangeInt(0, population.size());
         Solution *new_solution = crossSolutions(population[index1], population[index2]);
-        recombineSolution(new_solution);
-        mutateSolution(new_solution);
+        recombineSolution(new_solution, population[index1]);
+        // mutateSolution(new_solution);
         new_population.push_back(new_solution);
     }
 
     return new_population;
+}
+
+void printPopulationInfo(vector<Solution *> population)
+{
+    cout << "POPULATION INFO:" << endl;
+    cout << "Solution amount: " << population.size() << endl;
+    cout << "Solution 1 :" << endl;
+    for (int i = 0; i < population[0]->periods.size(); i++)
+    {
+        Period *period = population[0]->periods[i];
+        for (int j = 0; j < period->tuples.size(); j++)
+        {
+            cout << period->tuples[j]->id << " ";
+        }
+        cout << endl;
+    }
 }

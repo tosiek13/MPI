@@ -38,16 +38,11 @@ int main(int argc, char **argv)
     srand(time(NULL) + rank);
     if (rank == ROOT_THREAD)
     {
-        // cout << "Creating data" << endl;
         // createSolutionTuplesFile();
         // tuples_org = createSolutionTuples();
-        tuples_org = readSolutionTuplesFile();
-        population = createPopulation(POPULATION_SIZE);
-        // cout << "Data created" << endl;
+        vector<Tuple *> tuples_org = readSolutionTuplesFile();
+        population = createPopulation(tuples_org, POPULATION_SIZE);
     }
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    // cout << "Continue rank : " << rank << endl;
 
     bool exe_end = false;
 
@@ -60,7 +55,8 @@ int main(int argc, char **argv)
     int *tuplesLecturerBuffer = new int[pop_tuples_size];
     int *tuplesRoomBuffer = new int[pop_tuples_size];
 
-    PopulationBuffer popBuffer = {periodTuplesAmounts,
+    PopulationBuffer popBuffer = {0,
+                                  periodTuplesAmounts,
                                   tuplesIDBuffer,
                                   tuplesGroupBuffer,
                                   tuplesLecturerBuffer,
@@ -70,9 +66,12 @@ int main(int argc, char **argv)
     if (rank == ROOT_THREAD)
     {
         // cout << "Serialize" << endl;
-        serilize(population, popBuffer);
+        serilize(population, &popBuffer);
         // cout << "Serialization end!" << endl;
     }
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    MPI_Bcast(&(popBuffer.pop_size), 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(popBuffer.tuplesNumInPeriods, pop_periods_amount, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(popBuffer.tuplesIds, pop_tuples_size, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(popBuffer.groupIds, pop_tuples_size, MPI_INT, 0, MPI_COMM_WORLD);
@@ -80,14 +79,16 @@ int main(int argc, char **argv)
     MPI_Bcast(popBuffer.roomIds, pop_tuples_size, MPI_INT, 0, MPI_COMM_WORLD);
 
     // if (rank != ROOT_THREAD)
-    // {
-    //     vector<Solution *> pop = deserialize(popBuffer);
-    //     vector<Solution *> newSolutions = createNewSolutions(pop);
-    //     SerializedPopulation newSolSerialized = serilize(newSolutions);
-    //     cout << "Send to root: " << rank << endl;
-    //     sendNewSolutionsToMaster(newSolSerialized);
-    //     cout << "Send done: " << rank << endl;
-    // }
+    if (rank == 2)
+    {
+        vector<Solution *> pop = deserialize(popBuffer);
+        // printPopulationInfo(pop);
+        vector<Solution *> newSolutions = createNewSolutions(pop);
+        PopulationBuffer newSolution_ser = serilize(newSolutions);
+        // cout << "Send to root: " << rank << endl;
+        // sendNewSolutionsToMaster(newSolSerialized);
+        // cout << "Send done: " << rank << endl;
+    }
     // if (rank == 0)
     // {
     //     population.clear();
