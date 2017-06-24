@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <random>
 #include <vector>
 #include <set>
@@ -17,8 +18,7 @@ const int PERIODS_AMOUNT = 50;
 const int LECTURERS_AMOUNT = 50;
 const int ROOMS_AMOUNT = 3;
 const int GROUPS_AMOUNT = 50;
-const int NEW_SOLUTIONS_NUM = 20;
-float POPULATION_INCREASE_FAKTOR = 1;
+
 const int MUTATION_PROPABILITY = 0.3;
 const float SURVIVAL_RATE = 0.8;
 
@@ -195,12 +195,12 @@ vector<Tuple *> createSolutionTuples()
     return tuples;
 }
 
-vector<Tuple *> createSolutionTuplesFile()
+void createSolutionTuplesFile()
 {
     ofstream myfile;
     myfile.open("tuples.csv");
     int id = 0;
-    for (int id = 0; id < 10000; id++)
+    for (int id = 0; id < 1000; id++)
     {
         int lecturerId = getRandRangeInt(0, LECTURERS_AMOUNT);
         int groupId = getRandRangeInt(0, GROUPS_AMOUNT);
@@ -208,7 +208,10 @@ vector<Tuple *> createSolutionTuplesFile()
 
         myfile << id << ";" << lecturerId << ";" << groupId << ";" << roomId << endl;
     }
-    myfile.close();
+    if (myfile.is_open())
+    {
+        // myfile.close();
+    }
 }
 
 vector<Tuple *> readSolutionTuplesFile()

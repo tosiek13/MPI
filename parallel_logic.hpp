@@ -9,24 +9,34 @@ struct SerializedPopulation
     std::vector<int> roomIds;
 };
 
-SerializedPopulation serilize(vector<Solution *> population)
+struct PopulationBuffer
 {
-    SerializedPopulation result;
+    int *tuplesNumInPeriods;
+    int *tuplesIds;
+    int *groupIds;
+    int *lecturerIds;
+    int *roomIds;
+};
+
+void serilize(vector<Solution *> population, PopulationBuffer popBuffer)
+{
+    int index_1 = 0;
+    int index_2 = 0;
     for (int j = 0; j < population.size(); j++)
     {
         for (int i = 0; i < population[j]->periods.size(); i++)
         {
-            result.tuplesNumInPeriods.push_back(population[j]->periods[i]->tuples.size());
+            popBuffer.tuplesNumInPeriods[index_1++] = population[j]->periods[i]->tuples.size();
             for (int k = 0; k < population[j]->periods[i]->tuples.size(); k++)
             {
-                result.tuplesIds.push_back(population[j]->periods[i]->tuples[k]->id);
-                result.groupIds.push_back(population[j]->periods[i]->tuples[k]->groupId);
-                result.lecturerIds.push_back(population[j]->periods[i]->tuples[k]->lecturerId);
-                result.roomIds.push_back(population[j]->periods[i]->tuples[k]->roomId);
+                popBuffer.tuplesIds[index_2] = population[j]->periods[i]->tuples[k]->id;
+                popBuffer.groupIds[index_2] = population[j]->periods[i]->tuples[k]->groupId;
+                popBuffer.lecturerIds[index_2] = population[j]->periods[i]->tuples[k]->lecturerId;
+                popBuffer.roomIds[index_2] = population[j]->periods[i]->tuples[k]->roomId;
+                index_2++;
             }
         }
     }
-    return result;
 }
 
 vector<Solution *> deserialize(SerializedPopulation sp)
@@ -107,7 +117,7 @@ SerializedPopulation recivePopulation(int senderId, MPI_Status *status)
     MPI_Recv(tuplesNumInPeriods, tuplesNumInPeriodsAmount, MPI_INT, 0, 0,
              MPI_COMM_WORLD, &localStatus);
 
-    cout << "Got array of data length: " << (sizeof(tuplesNumInPeriods)/sizeof(*tuplesNumInPeriods)) << endl;
+    cout << "Got array of data length: " << (sizeof(tuplesNumInPeriods) / sizeof(*tuplesNumInPeriods)) << endl;
     // result.tuplesNumInPeriods = vector<int>(tuplesNumInPeriods, tuplesNumInPeriods + tuplesNumInPeriodsAmount);
     free(tuplesNumInPeriods);
 
