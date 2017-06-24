@@ -62,21 +62,16 @@ vector<Solution *> deserialize(SerializedPopulation sp)
 
 void sendSerializedPopulation(SerializedPopulation sp, int reciverId)
 {
-    int *periodsNum = new int[1];
-    int *tuplesNum = new int[1];
+    int periodAmount = sp.tuplesNumInPeriods.size();
+    int tuplesAmount = sp.roomIds.size();
 
-    *periodsNum = sp.tuplesNumInPeriods.size();
-    *tuplesNum = sp.roomIds.size();
+    MPI_Send(&sp.tuplesNumInPeriods[0], periodAmount, MPI_INT, reciverId, 0, MPI_COMM_WORLD);
 
-    MPI_Send(periodsNum, 1, MPI_INT, reciverId, 121, MPI_COMM_WORLD);
-    MPI_Send(tuplesNum, 1, MPI_INT, reciverId, 123, MPI_COMM_WORLD);
-
-    MPI_Send(&sp.tuplesNumInPeriods[0], *periodsNum, MPI_INT, reciverId, 14, MPI_COMM_WORLD);
-
-    MPI_Send(&sp.tuplesIds[0], *tuplesNum, MPI_INT, reciverId, 10, MPI_COMM_WORLD);
-    MPI_Send(&sp.groupIds[0], *tuplesNum, MPI_INT, reciverId, 11, MPI_COMM_WORLD);
-    MPI_Send(&sp.lecturerIds[0], *tuplesNum, MPI_INT, reciverId, 12, MPI_COMM_WORLD);
-    MPI_Send(&sp.roomIds[0], *tuplesNum, MPI_INT, reciverId, 13, MPI_COMM_WORLD);
+    MPI_Send(&sp.tuplesIds[0], tuplesAmount, MPI_INT, reciverId, 0, MPI_COMM_WORLD);
+    MPI_Send(&sp.groupIds[0], tuplesAmount, MPI_INT, reciverId, 0, MPI_COMM_WORLD);
+    MPI_Send(&sp.lecturerIds[0], tuplesAmount, MPI_INT, reciverId, 0, MPI_COMM_WORLD);
+    MPI_Send(&sp.roomIds[0], tuplesAmount, MPI_INT, reciverId, 0, MPI_COMM_WORLD);
+    cout << "Sent: " << reciverId << endl;
 }
 
 void broadcastPopulation(SerializedPopulation sp)
@@ -94,31 +89,64 @@ SerializedPopulation recivePopulation(int senderId, MPI_Status *status)
 {
     SerializedPopulation result;
 
-    int *periodsNum = new int[1];
-    int *tuplesNum = new int[1];
+    MPI_Status localStatus;
+    //debug
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    //debug
 
-    MPI_Recv(periodsNum, 1, MPI_INT, senderId, 121, MPI_COMM_WORLD, status);
-    MPI_Recv(tuplesNum, 1, MPI_INT, senderId, 123, MPI_COMM_WORLD, status);
+    cout << "Receive population rank: " << rank << endl;
 
-    int *tuplesNumInPeriods = new int[*periodsNum];
+    // Tuples length info
+    MPI_Probe(0, 0, MPI_COMM_WORLD, &localStatus);
+    int tuplesNumInPeriodsAmount;
+    MPI_Get_count(&localStatus, MPI_INT, &tuplesNumInPeriodsAmount);
+    cout << "Tuples num in periods amount: " << tuplesNumInPeriodsAmount << endl;
+    int *tuplesNumInPeriods = (int *)malloc(sizeof(int) * tuplesNumInPeriodsAmount);
 
-    int *tuplesIds = new int[*tuplesNum];
-    int *groupIds = new int[*tuplesNum];
-    int *lecturerIds = new int[*tuplesNum];
-    int *roomIds = new int[*tuplesNum];
+    MPI_Recv(tuplesNumInPeriods, tuplesNumInPeriodsAmount, MPI_INT, 0, 0,
+             MPI_COMM_WORLD, &localStatus);
 
-    MPI_Recv(tuplesNumInPeriods, *periodsNum, MPI_INT, senderId, 14, MPI_COMM_WORLD, status);
+    cout << "Got array of data length: " << (sizeof(tuplesNumInPeriods)/sizeof(*tuplesNumInPeriods)) << endl;
+    // result.tuplesNumInPeriods = vector<int>(tuplesNumInPeriods, tuplesNumInPeriods + tuplesNumInPeriodsAmount);
+    free(tuplesNumInPeriods);
 
-    MPI_Recv(tuplesIds, *tuplesNum, MPI_INT, senderId, 10, MPI_COMM_WORLD, status);
-    MPI_Recv(groupIds, *tuplesNum, MPI_INT, senderId, 11, MPI_COMM_WORLD, status);
-    MPI_Recv(lecturerIds, *tuplesNum, MPI_INT, senderId, 12, MPI_COMM_WORLD, status);
-    MPI_Recv(roomIds, *tuplesNum, MPI_INT, senderId, 13, MPI_COMM_WORLD, status);
+    // cout << "Receive population got tuples in period amount:" << endl;
 
-    result.tuplesNumInPeriods = vector<int>(tuplesNumInPeriods, tuplesNumInPeriods + *periodsNum);
-    result.tuplesIds = vector<int>(tuplesIds, tuplesIds + *tuplesNum);
-    result.groupIds = vector<int>(groupIds, groupIds + *tuplesNum);
-    result.lecturerIds = vector<int>(lecturerIds, lecturerIds + *tuplesNum);
-    result.roomIds = vector<int>(roomIds, roomIds + *tuplesNum);
+    // recive tuples
+    MPI_Probe(0, 0, MPI_COMM_WORLD, status);
+    int tuplesAmount;
+    MPI_Get_count(status, MPI_INT, &tuplesAmount);
+
+    //ID
+    int *tuplesIds = (int *)malloc(sizeof(int) * tuplesAmount);
+    MPI_Recv(tuplesIds, tuplesAmount, MPI_INT, 0, 0,
+             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    result.tuplesIds = vector<int>(tuplesIds, tuplesIds + tuplesAmount);
+    free(tuplesIds);
+
+    // griups
+    int *groupIds = (int *)malloc(sizeof(int) * tuplesAmount);
+    MPI_Recv(groupIds, tuplesAmount, MPI_INT, 0, 0,
+             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    result.groupIds = vector<int>(groupIds, groupIds + tuplesAmount);
+    free(groupIds);
+
+    // lecurers
+    int *lecturerIds = (int *)malloc(sizeof(int) * tuplesAmount);
+    MPI_Recv(lecturerIds, tuplesAmount, MPI_INT, 0, 0,
+             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    result.lecturerIds = vector<int>(lecturerIds, lecturerIds + tuplesAmount);
+    free(lecturerIds);
+
+    // roomId
+    int *roomIds = (int *)malloc(sizeof(int) * tuplesAmount);
+    MPI_Recv(roomIds, tuplesAmount, MPI_INT, 0, 0,
+             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    result.roomIds = vector<int>(roomIds, roomIds + tuplesAmount);
+    free(roomIds);
+
+    cout << "GOT ALL MESSAGES rank: " << rank << endl;
 
     return result;
 }

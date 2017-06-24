@@ -64,7 +64,9 @@ int main(int argc, char **argv)
             vector<Solution *> pop = deserialize(sp);
             vector<Solution *> newSolutions = createNewSolutions(pop);
             SerializedPopulation newSolSerialized = serilize(newSolutions);
+            cout << "Send to root: " << rank << endl;
             sendNewSolutionsToMaster(newSolSerialized);
+            cout << "Send done: " << rank << endl;
         }
         if (rank == 0)
         {
@@ -72,6 +74,7 @@ int main(int argc, char **argv)
             for (int i = 1; i < size; i++)
             {
                 SerializedPopulation sp = recivePopulation(i, &status);
+                cout << "Recive solution done: " << i << endl;
                 vector<Solution *> pop = deserialize(sp);
                 population.insert(population.end(), pop.begin(), pop.end());
             }
