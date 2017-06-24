@@ -50,6 +50,7 @@ int main(int argc, char **argv)
     int iterNr = 0;
     while (!exe_end)
     {
+        cout << "Rank: " << rank << endl;
         //update buffer with new population
         writeToBuffer(population, &popBuffer);
         // BROADCAST buffer
@@ -92,13 +93,15 @@ int main(int argc, char **argv)
             iterNr++;
             for (int j = 0; j < population.size(); j++)
             {
-                if (countSolutionCost(population[j]) == 0 || (iterNr++ > MAX_ITER_NR))
+                if (countSolutionCost(population[j]) == 0 || (iterNr > MAX_ITER_NR))
                 {
                     printCSVSolution(population[j]);
-                    // exe_end = true;
+                    exe_end = true;
                 }
             }
+            cout << "Generation end" << endl;
         }
+         MPI_Barrier(MPI_COMM_WORLD);
     }
     freePopulationBuffer(popBuffer);
 

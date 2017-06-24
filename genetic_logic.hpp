@@ -360,12 +360,13 @@ vector<Solution *> naturalSelection(vector<Solution *> population)
     }
     std::sort(costs.rbegin(), costs.rend());
     //degug
-    cout << "costs:" << endl;
+    // cout << "costs:" << endl;
+    cout << "MIN cost: " << costs[population.size() - 1] << endl;
     for (int i = 0; i < costs.size(); i++)
     {
-        cout << costs[i] << ", ";
+        // cout << costs[i] << ", ";
     }
-    cout << endl;
+    // cout << endl;
     //end debug
     // casual mode
     int selectionMode = 0;
@@ -375,9 +376,9 @@ vector<Solution *> naturalSelection(vector<Solution *> population)
         selectionMode = 1;
     }
 
-    std::cout << "POP SIZE: " << population.size() << std::endl;
+    // std::cout << "POP SIZE: " << population.size() << std::endl;
     int survialsAmount = population.size() >= 10 ? ceil(population.size() * SURVIVAL_RATE) : population.size() - 1;
-    std::cout << "Survivals amount: " << survialsAmount << std::endl;
+    // std::cout << "Survivals amount: " << survialsAmount << std::endl;
     int threshold = costs.at(population.size() - survialsAmount - 1);
 
     vector<Solution *> populationSelected;
