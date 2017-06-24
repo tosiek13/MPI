@@ -24,11 +24,8 @@ int ROOT_THREAD = 0;
 
 int main(int argc, char **argv)
 {
-    //test
-
     int rank, size;
     MPI_Status status;
-    int counter;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -36,6 +33,8 @@ int main(int argc, char **argv)
 
     //INITIALIZATION
     srand(time(NULL) + rank);
+    PopulationBuffer popBuffer = allocatePopulationBuffer(POPULATION_SIZE);
+
     if (rank == ROOT_THREAD)
     {
         // createSolutionTuplesFile();
@@ -43,34 +42,18 @@ int main(int argc, char **argv)
         vector<Tuple *> tuples_org = readSolutionTuplesFile();
         population = createPopulation(tuples_org, POPULATION_SIZE);
     }
+    MPI_Barrier(MPI_COMM_WORLD);
 
     bool exe_end = false;
 
-    int pop_periods_amount = POPULATION_SIZE * PERIODS_AMOUNT;
-    int pop_tuples_size = POPULATION_SIZE * TUPLES_AMOUNT;
-
-    int *periodTuplesAmounts = new int[pop_periods_amount];
-    int *tuplesIDBuffer = new int[pop_tuples_size];
-    int *tuplesGroupBuffer = new int[pop_tuples_size];
-    int *tuplesLecturerBuffer = new int[pop_tuples_size];
-    int *tuplesRoomBuffer = new int[pop_tuples_size];
-
-    PopulationBuffer popBuffer = {0,
-                                  periodTuplesAmounts,
-                                  tuplesIDBuffer,
-                                  tuplesGroupBuffer,
-                                  tuplesLecturerBuffer,
-                                  tuplesRoomBuffer};
     // while (!exe_end)
     // {
-    if (rank == ROOT_THREAD)
-    {
-        // cout << "Serialize" << endl;
-        serilize(population, &popBuffer);
-        // cout << "Serialization end!" << endl;
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
 
+    //update buffer
+    writeToBuffer(population, &popBuffer);
+    // BROADCAST buffer
+    int pop_periods_amount = POPULATION_SIZE * PERIODS_AMOUNT;
+    int pop_tuples_size = POPULATION_SIZE * TUPLES_AMOUNT;
     MPI_Bcast(&(popBuffer.pop_size), 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(popBuffer.tuplesNumInPeriods, pop_periods_amount, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(popBuffer.tuplesIds, pop_tuples_size, MPI_INT, 0, MPI_COMM_WORLD);
@@ -78,6 +61,7 @@ int main(int argc, char **argv)
     MPI_Bcast(popBuffer.lecturerIds, pop_tuples_size, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(popBuffer.roomIds, pop_tuples_size, MPI_INT, 0, MPI_COMM_WORLD);
 
+    //DO COMPUTATION
     // if (rank != ROOT_THREAD)
     if (rank == 2)
     {
@@ -112,13 +96,15 @@ int main(int argc, char **argv)
     //         }
     //     }
     // }
+
+
     // }
 
-    delete[] periodTuplesAmounts;
-    delete[] tuplesIDBuffer;
-    delete[] tuplesGroupBuffer;
-    delete[] tuplesLecturerBuffer;
-    delete[] tuplesRoomBuffer;
+    delete[] popBuffer.tuplesNumInPeriods;
+    delete[] popBuffer.tuplesIds;
+    delete[] popBuffer.groupIds;
+    delete[] popBuffer.lecturerIds;
+    delete[] popBuffer.roomIds;
 
     MPI_Finalize();
     return 0;

@@ -19,11 +19,31 @@ struct PopulationBuffer
     int *roomIds;
 };
 
-void serilize(vector<Solution *> population, PopulationBuffer *popBuffer)
+PopulationBuffer allocatePopulationBuffer(int pop_size)
+{
+    int pop_periods_amount = pop_size * PERIODS_AMOUNT;
+    int pop_tuples_size = pop_size * TUPLES_AMOUNT;
+
+    // allocate memory
+    int *periodTuplesAmounts = new int[pop_periods_amount];
+    int *tuplesIDBuffer = new int[pop_tuples_size];
+    int *tuplesGroupBuffer = new int[pop_tuples_size];
+    int *tuplesLecturerBuffer = new int[pop_tuples_size];
+    int *tuplesRoomBuffer = new int[pop_tuples_size];
+
+    PopulationBuffer popBuffer = {pop_size,
+                                  periodTuplesAmounts,
+                                  tuplesIDBuffer,
+                                  tuplesGroupBuffer,
+                                  tuplesLecturerBuffer,
+                                  tuplesRoomBuffer};
+    return popBuffer;
+}
+
+void writeToBuffer(vector<Solution *> population, PopulationBuffer* popBuffer)
 {
     int index_1 = 0;
     int index_2 = 0;
-    popBuffer->pop_size = population.size();
     for (int j = 0; j < population.size(); j++)
     {
         for (int i = 0; i < population[j]->periods.size(); i++)
