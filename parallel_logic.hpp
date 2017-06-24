@@ -40,7 +40,7 @@ PopulationBuffer allocatePopulationBuffer(int pop_size)
     return popBuffer;
 }
 
-void writeToBuffer(vector<Solution *> population, PopulationBuffer* popBuffer)
+void writeToBuffer(vector<Solution *> population, PopulationBuffer *popBuffer)
 {
     int index_1 = 0;
     int index_2 = 0;
@@ -221,6 +221,31 @@ SerializedPopulation recivePopulation(int senderId, MPI_Status *status)
     cout << "GOT ALL MESSAGES rank: " << rank << endl;
 
     return result;
+}
+
+int *getIntsMessage(int srcRank)
+{
+    int int_amount;
+    int *ints_buffer;
+
+    MPI_Status status;
+    MPI_Probe(srcRank, 0, MPI_COMM_WORLD, &status);
+    MPI_Get_count(&status, MPI_INT, &int_amount);
+
+    ints_buffer = new int[int_amount];
+
+    MPI_Recv(ints_buffer, int_amount, MPI_INT, srcRank, 0,
+             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    return ints_buffer;
+}
+
+void freePopulationBuffer(PopulationBuffer& pop_buff){
+    delete[] pop_buff.tuplesNumInPeriods;
+    delete[] pop_buff.tuplesIds;
+    delete[] pop_buff.groupIds;
+    delete[] pop_buff.lecturerIds;
+    delete[] pop_buff.roomIds;
 }
 
 void sendNewSolutionsToMaster(SerializedPopulation sp)

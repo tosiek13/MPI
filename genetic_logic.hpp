@@ -22,6 +22,7 @@ const int GROUPS_AMOUNT = 50;
 
 const int MUTATION_PROPABILITY = 0.3;
 const float SURVIVAL_RATE = 0.8;
+const int MAX_ITER_NR = 50;
 
 struct Tuple
 {

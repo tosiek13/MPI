@@ -46,65 +46,88 @@ int main(int argc, char **argv)
 
     bool exe_end = false;
 
-    // while (!exe_end)
-    // {
-
-    //update buffer
-    writeToBuffer(population, &popBuffer);
-    // BROADCAST buffer
-    int pop_periods_amount = POPULATION_SIZE * PERIODS_AMOUNT;
-    int pop_tuples_size = POPULATION_SIZE * TUPLES_AMOUNT;
-    MPI_Bcast(&(popBuffer.pop_size), 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(popBuffer.tuplesNumInPeriods, pop_periods_amount, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(popBuffer.tuplesIds, pop_tuples_size, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(popBuffer.groupIds, pop_tuples_size, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(popBuffer.lecturerIds, pop_tuples_size, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(popBuffer.roomIds, pop_tuples_size, MPI_INT, 0, MPI_COMM_WORLD);
-
-    //DO COMPUTATION
-    // if (rank != ROOT_THREAD)
-    if (rank == 2)
+    int iterNr = 0;
+    while (!exe_end)
     {
-        vector<Solution *> pop = deserialize(popBuffer);
-        // printPopulationInfo(pop);
-        vector<Solution *> newSolutions = createNewSolutions(pop);
-        PopulationBuffer newSolution_ser = serilize(newSolutions);
-        // cout << "Send to root: " << rank << endl;
-        // sendNewSolutionsToMaster(newSolSerialized);
-        // cout << "Send done: " << rank << endl;
+        //update buffer
+        writeToBuffer(population, &popBuffer);
+        // BROADCAST buffer
+        int pop_periods_amount = POPULATION_SIZE * PERIODS_AMOUNT;
+        int pop_tuples_size = POPULATION_SIZE * TUPLES_AMOUNT;
+        MPI_Bcast(&(popBuffer.pop_size), 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(popBuffer.tuplesNumInPeriods, pop_periods_amount, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(popBuffer.tuplesIds, pop_tuples_size, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(popBuffer.groupIds, pop_tuples_size, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(popBuffer.lecturerIds, pop_tuples_size, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(popBuffer.roomIds, pop_tuples_size, MPI_INT, 0, MPI_COMM_WORLD);
+
+        //DO COMPUTATION
+        if (rank != ROOT_THREAD)
+        {
+            vector<Solution *> pop = deserialize(popBuffer);
+            // printPopulationInfo(pop);
+            vector<Solution *> newSolutions = createNewSolutions(pop);
+            PopulationBuffer new_sol = serilize(newSolutions);
+
+            // send to master
+            int pop_size = new_sol.pop_size;
+            int periods_size = pop_size * PERIODS_AMOUNT;
+            int tuples_size = pop_size * TUPLES_AMOUNT;
+
+            int values[] = {1, 2, 3, 4};
+
+            MPI_Send(&(new_sol.pop_size), 1, MPI_INT, ROOT_THREAD, 0, MPI_COMM_WORLD);
+            MPI_Send(new_sol.tuplesNumInPeriods, periods_size, MPI_INT, ROOT_THREAD, 0, MPI_COMM_WORLD);
+            MPI_Send(new_sol.tuplesIds, tuples_size, MPI_INT, ROOT_THREAD, 0, MPI_COMM_WORLD);
+            MPI_Send(new_sol.groupIds, tuples_size, MPI_INT, ROOT_THREAD, 0, MPI_COMM_WORLD);
+            MPI_Send(new_sol.lecturerIds, tuples_size, MPI_INT, ROOT_THREAD, 0, MPI_COMM_WORLD);
+            MPI_Send(new_sol.roomIds, tuples_size, MPI_INT, ROOT_THREAD, 0, MPI_COMM_WORLD);
+
+            freePopulationBuffer(new_sol);
+        }
+        if (rank == ROOT_THREAD)
+        {
+            population.clear();
+            for (int i = 0; i < size; i++)
+            {
+                if (i != ROOT_THREAD)
+                {
+                    int *pop_size_buff = getIntsMessage(i);
+                    int *tuplesNumInPeriods_buff = getIntsMessage(i);
+                    int *tuplesIds_buff = getIntsMessage(i);
+                    int *groupIds_buff = getIntsMessage(i);
+                    int *lecturerIds_buff = getIntsMessage(i);
+                    int *roomIds_buff = getIntsMessage(i);
+
+                    PopulationBuffer recived_sol_buff = {
+                        pop_size_buff[0],
+                        tuplesNumInPeriods_buff,
+                        tuplesIds_buff,
+                        groupIds_buff,
+                        lecturerIds_buff,
+                        roomIds_buff};
+
+                    vector<Solution *> rec_sol = deserialize(recived_sol_buff);
+                    freePopulationBuffer(recived_sol_buff);
+                    population.insert(population.end(), rec_sol.begin(), rec_sol.end());
+                }
+            }
+
+            population = naturalSelection(population);
+
+            //print solution
+            iterNr++;
+            for (int j = 0; j < population.size(); j++)
+            {
+                if (countSolutionCost(population[j]) == 0 && (iterNr++ > MAX_ITER_NR))
+                {
+                    printCSVSolution(population[j]);
+                    exe_end = true;
+                }
+            }
+        }
     }
-    // if (rank == 0)
-    // {
-    //     population.clear();
-    //     for (int i = 1; i < size; i++)
-    //     {
-    //         SerializedPopulation sp = recivePopulation(i, &status);
-    //         cout << "Recive solution done: " << i << endl;
-    //         vector<Solution *> pop = deserialize(sp);
-    //         population.insert(population.end(), pop.begin(), pop.end());
-    //     }
-    //     population = naturalSelection(population);
-    //     cout << endl
-    //          << countSolutionCost(population[0]) << endl;
-
-    //     for (int j = 0; j < population.size(); j++)
-    //     {
-    //         if (countSolutionCost(population[j]) == 0)
-    //         {
-    //             printCSVSolution(population[j]);
-    //             MPI_Abort(MPI_COMM_WORLD, 0);
-    //         }
-    //     }
-    // }
-
-
-    // }
-
-    delete[] popBuffer.tuplesNumInPeriods;
-    delete[] popBuffer.tuplesIds;
-    delete[] popBuffer.groupIds;
-    delete[] popBuffer.lecturerIds;
-    delete[] popBuffer.roomIds;
+    freePopulationBuffer(popBuffer);
 
     MPI_Finalize();
     return 0;
