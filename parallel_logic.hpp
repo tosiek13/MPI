@@ -19,6 +19,24 @@ struct PopulationBuffer
     int *roomIds;
 };
 
+/**/
+int *getIntsMessage(int srcRank)
+{
+    int int_amount;
+    int *ints_buffer;
+
+    MPI_Status status;
+    MPI_Probe(srcRank, 0, MPI_COMM_WORLD, &status);
+    MPI_Get_count(&status, MPI_INT, &int_amount);
+
+    ints_buffer = new int[int_amount];
+
+    MPI_Recv(ints_buffer, int_amount, MPI_INT, srcRank, 0,
+             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    return ints_buffer;
+}
+
 PopulationBuffer allocatePopulationBuffer(int pop_size)
 {
     int pop_periods_amount = pop_size * PERIODS_AMOUNT;
@@ -223,24 +241,55 @@ SerializedPopulation recivePopulation(int senderId, MPI_Status *status)
     return result;
 }
 
-int *getIntsMessage(int srcRank)
+void broadcastPopulationBuffer(PopulationBuffer &popBuffer, int rootRank)
 {
-    int int_amount;
-    int *ints_buffer;
+    int pop_periods_amount = popBuffer.pop_size * PERIODS_AMOUNT;
+    int pop_tuples_size = popBuffer.pop_size * TUPLES_AMOUNT;
 
-    MPI_Status status;
-    MPI_Probe(srcRank, 0, MPI_COMM_WORLD, &status);
-    MPI_Get_count(&status, MPI_INT, &int_amount);
-
-    ints_buffer = new int[int_amount];
-
-    MPI_Recv(ints_buffer, int_amount, MPI_INT, srcRank, 0,
-             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    return ints_buffer;
+    MPI_Bcast(&(popBuffer.pop_size), 1, MPI_INT, rootRank, MPI_COMM_WORLD);
+    MPI_Bcast(popBuffer.tuplesNumInPeriods, pop_periods_amount, MPI_INT, rootRank, MPI_COMM_WORLD);
+    MPI_Bcast(popBuffer.tuplesIds, pop_tuples_size, MPI_INT, rootRank, MPI_COMM_WORLD);
+    MPI_Bcast(popBuffer.groupIds, pop_tuples_size, MPI_INT, rootRank, MPI_COMM_WORLD);
+    MPI_Bcast(popBuffer.lecturerIds, pop_tuples_size, MPI_INT, rootRank, MPI_COMM_WORLD);
+    MPI_Bcast(popBuffer.roomIds, pop_tuples_size, MPI_INT, rootRank, MPI_COMM_WORLD);
 }
 
-void freePopulationBuffer(PopulationBuffer& pop_buff){
+void sendPopulationBuffer(PopulationBuffer &popBuffer, int destRank)
+{
+    int pop_size = popBuffer.pop_size;
+    int periods_size = pop_size * PERIODS_AMOUNT;
+    int tuples_size = pop_size * TUPLES_AMOUNT;
+
+    MPI_Send(&(popBuffer.pop_size), 1, MPI_INT, destRank, 0, MPI_COMM_WORLD);
+    MPI_Send(popBuffer.tuplesNumInPeriods, periods_size, MPI_INT, destRank, 0, MPI_COMM_WORLD);
+    MPI_Send(popBuffer.tuplesIds, tuples_size, MPI_INT, destRank, 0, MPI_COMM_WORLD);
+    MPI_Send(popBuffer.groupIds, tuples_size, MPI_INT, destRank, 0, MPI_COMM_WORLD);
+    MPI_Send(popBuffer.lecturerIds, tuples_size, MPI_INT, destRank, 0, MPI_COMM_WORLD);
+    MPI_Send(popBuffer.roomIds, tuples_size, MPI_INT, destRank, 0, MPI_COMM_WORLD);
+}
+
+PopulationBuffer receivePopulationBuffer(int srcRank)
+{
+    int *pop_size_buff = getIntsMessage(srcRank);
+    int *tuplesNumInPeriods_buff = getIntsMessage(srcRank);
+    int *tuplesIds_buff = getIntsMessage(srcRank);
+    int *groupIds_buff = getIntsMessage(srcRank);
+    int *lecturerIds_buff = getIntsMessage(srcRank);
+    int *roomIds_buff = getIntsMessage(srcRank);
+
+    PopulationBuffer recived_sol_buff = {
+        pop_size_buff[0],
+        tuplesNumInPeriods_buff,
+        tuplesIds_buff,
+        groupIds_buff,
+        lecturerIds_buff,
+        roomIds_buff};
+
+    return recived_sol_buff;
+}
+
+void freePopulationBuffer(PopulationBuffer &pop_buff)
+{
     delete[] pop_buff.tuplesNumInPeriods;
     delete[] pop_buff.tuplesIds;
     delete[] pop_buff.groupIds;
