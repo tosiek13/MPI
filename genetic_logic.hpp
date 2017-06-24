@@ -22,7 +22,7 @@ const int GROUPS_AMOUNT = 50;
 
 const int MUTATION_PROPABILITY = 0.3;
 const float SURVIVAL_RATE = 0.8;
-const int MAX_ITER_NR = 5;
+const int MAX_ITER_NR = 50;
 
 struct Tuple
 {
@@ -361,7 +361,7 @@ vector<Solution *> naturalSelection(vector<Solution *> population)
     std::sort(costs.rbegin(), costs.rend());
     //degug
     // cout << "costs:" << endl;
-    cout << "MIN cost: " << costs[population.size() - 1] << endl;
+    // cout << "MIN cost: " << costs[population.size() - 1] << endl;
     for (int i = 0; i < costs.size(); i++)
     {
         // cout << costs[i] << ", ";

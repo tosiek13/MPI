@@ -47,10 +47,12 @@ int main(int argc, char **argv)
 
     bool exe_end = false;
 
+    const clock_t begin_time = clock();
+
     int iterNr = 0;
     while (!exe_end)
     {
-        cout << "Rank: " << rank << endl;
+        // cout << "Rank: " << rank << endl;
         //update buffer with new population
         writeToBuffer(population, &popBuffer);
         // BROADCAST buffer
@@ -89,22 +91,27 @@ int main(int argc, char **argv)
             population = naturalSelection(population);
 
             //print solution
-            cout << "Iter nr" << iterNr << endl;
+            // cout << "Iter nr" << iterNr << endl;
             iterNr++;
             for (int j = 0; j < population.size(); j++)
             {
-                if (countSolutionCost(population[j]) == 0 || (iterNr > MAX_ITER_NR))
+                if (iterNr > MAX_ITER_NR)
+                // if (countSolutionCost(population[j]) == 0 || (iterNr > MAX_ITER_NR))
                 {
-                    printCSVSolution(population[j]);
+                    // printCSVSolution(population[j]);
                     exe_end = true;
                 }
             }
-            cout << "Generation end" << endl;
+            // cout << "Generation end" << endl;
         }
-         MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Barrier(MPI_COMM_WORLD);
     }
     freePopulationBuffer(popBuffer);
 
+    float execTime = float(clock() - begin_time) / CLOCKS_PER_SEC;
+    cout << execTime << endl;
+
+    MPI_Abort(MPI_COMM_WORLD,0);
     MPI_Finalize();
     return 0;
 }
